@@ -134,40 +134,84 @@ id DYBCall(id obj, NSArray<NSString *> *sels) {
 
 typedef BOOL (^DYBVisit)(id obj);
 
-static void DYBWalkObject(id obj, int depth, NSMutableSet<NSValue *> *seen, DYBVisit visit) {
-    if (!obj || depth <= 0) return;
+// 预算：抖音首页 VC 的对象图能到 10^6 级别（feed 数据源 × 每个 model 上百 ivar），
+// 不设上限就是主线程冻结 —— 之前「打开就卡死」就是这么来的。
+static const int   kWalkMaxNodes  = 1200;
+static const int   kWalkMaxDepth  = 5;
+static const CFTimeInterval kWalkMaxSeconds = 0.020;
+
+typedef struct {
+    int nodes;
+    CFTimeInterval deadline;
+    NSMutableSet<NSValue *> *seen;
+    BOOL exhausted;
+} DYBWalkBudget;
+
+/// 这些类的 ivar 一律不再深入：UIKit 对象图会把整个 window 树 / layer 树带进来，
+/// 图片、数据块本身也只有字节，没有信息量。
+static BOOL DYBNoDeepDive(id obj) {
+    if ([obj isKindOfClass:UIView.class])        return YES;
+    if ([obj isKindOfClass:UIViewController.class]) return YES;
+    if ([obj isKindOfClass:UIResponder.class])   return YES;
+    if ([obj isKindOfClass:CALayer.class])       return YES;
+    if ([obj isKindOfClass:UIImage.class])       return YES;
+    if ([obj isKindOfClass:NSData.class])        return YES;
+    if ([obj isKindOfClass:NSDate.class])        return YES;
+    if ([obj isKindOfClass:NSError.class])       return YES;
+    if ([obj isKindOfClass:NSValue.class])       return YES;   // NSNumber / NSValue
+    return NO;
+}
+
+static void DYBWalkObjectBudget(id obj, int depth, DYBWalkBudget *b, DYBVisit visit) {
+    if (!obj || depth <= 0 || b->exhausted) return;
+    if (b->nodes++ > kWalkMaxNodes) { b->exhausted = YES; return; }
+    if ((b->nodes & 0x3F) == 0 && CACurrentMediaTime() > b->deadline) { b->exhausted = YES; return; }
+
     NSValue *ident = [NSValue valueWithPointer:(__bridge const void *)(obj)];
-    if ([seen containsObject:ident]) return;
-    [seen addObject:ident];
+    if ([b->seen containsObject:ident]) return;
+    [b->seen addObject:ident];
 
     if (visit(obj)) return;
+    if (depth <= 1) return;
 
     if ([obj isKindOfClass:NSArray.class]) {
-        for (id e in (NSArray *)obj) DYBWalkObject(e, depth - 1, seen, visit);
+        NSArray *a = (NSArray *)obj;
+        NSUInteger n = MIN(a.count, 64);
+        for (NSUInteger i = 0; i < n; i++) DYBWalkObjectBudget(a[i], depth - 1, b, visit);
         return;
     }
     if ([obj isKindOfClass:NSSet.class]) {
-        for (id e in (NSSet *)obj) DYBWalkObject(e, depth - 1, seen, visit);
+        NSUInteger i = 0;
+        for (id e in (NSSet *)obj) { if (i++ >= 64) break; DYBWalkObjectBudget(e, depth - 1, b, visit); }
         return;
     }
     if ([obj isKindOfClass:NSDictionary.class]) {
-        for (id e in [(NSDictionary *)obj allValues]) DYBWalkObject(e, depth - 1, seen, visit);
+        NSUInteger i = 0;
+        for (id e in [(NSDictionary *)obj allValues]) { if (i++ >= 64) break; DYBWalkObjectBudget(e, depth - 1, b, visit); }
         return;
     }
+    if (DYBNoDeepDive(obj)) return;
+
     // 只遍历对象类型 ivar，避免对非对象内存调用 object_getIvar
     for (Class c = object_getClass(obj); c && c != [NSObject class]; c = class_getSuperclass(c)) {
         unsigned n = 0;
         Ivar *ivars = class_copyIvarList(c, &n);
         if (!ivars) continue;
-        for (unsigned i = 0; i < n; i++) {
-            const char *t = ivar_getTypeEncoding(ivars[i]);
-            if (!t || t[0] != '@') continue;
-            id v = nil;
-            @try { v = object_getIvar(obj, ivars[i]); } @catch (NSException *e) { v = nil; }
-            if (v) DYBWalkObject(v, depth - 1, seen, visit);
-        }
-        free(ivars);
+        @try {
+            for (unsigned i = 0; i < n && !b->exhausted; i++) {
+                const char *t = ivar_getTypeEncoding(ivars[i]);
+                if (!t || t[0] != '@') continue;
+                id v = nil;
+                @try { v = object_getIvar(obj, ivars[i]); } @catch (NSException *e) { v = nil; }
+                if (v) DYBWalkObjectBudget(v, depth - 1, b, visit);
+            }
+        } @finally { free(ivars); }
     }
+}
+
+static void DYBWalkObject(id obj, int depth, NSMutableSet<NSValue *> *seen, DYBVisit visit) {
+    DYBWalkBudget b = { 0, CACurrentMediaTime() + kWalkMaxSeconds, seen, NO };
+    DYBWalkObjectBudget(obj, MIN(depth, kWalkMaxDepth), &b, visit);
 }
 
 id DYBFindObject(id root, NSArray<NSString *> *classNames, int maxDepth) {
@@ -235,13 +279,19 @@ UIViewController *DYBMostTopViewController(void) {
 
 void DYBWalkViews(UIView *root, void (^visit)(UIView *view, BOOL *stop)) {
     if (!root) return;
-    BOOL stop = NO;
-    visit(root, &stop);
-    if (stop) return;
-    for (UIView *sub in root.subviews) {
-        DYBWalkViews(sub, visit);
-        if (stop) break;
-    }
+    static int depth = 0;
+    if (depth > 40) return;                 // 防御：异常深的视图树直接放弃
+    depth++;
+    @try {
+        BOOL stop = NO;
+        visit(root, &stop);
+        if (!stop) {
+            for (UIView *sub in root.subviews) {
+                DYBWalkViews(sub, visit);
+                if (stop) break;
+            }
+        }
+    } @finally { depth--; }
 }
 
 UIView *DYBFindView(UIView *root, BOOL (^predicate)(UIView *view)) {

@@ -127,7 +127,7 @@ static NSString *DYBShortNum(long long n) {
     BOOL on = [[DYBPrefs shared] boolFor:DYBKey_showStats default:NO];
     gStatsWindow.hidden = !on;
     if (!on) return;
-    DYBAweme *a = [DYBAweme current];
+    DYBAweme *a = [DYBAweme currentNoScan];     // 不隐式触发对象图扫描
     if (!a) { gStatsLabel.text = @"暂无数据"; return; }
     NSMutableString *s = [NSMutableString string];
     if (a.diggCount)    [s appendFormat:@"赞 %@\n", DYBShortNum(a.diggCount.longLongValue)];
@@ -164,6 +164,10 @@ static NSString *DYBShortNum(long long n) {
 }
 
 #pragma mark 对外
+
++ (void)updateLight {
+    DYBAsyncMain(^{ [self refreshLive]; });
+}
 
 + (void)update {
     DYBAsyncMain(^{

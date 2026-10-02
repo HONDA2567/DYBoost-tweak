@@ -49,6 +49,7 @@
 #pragma mark 菜单
 
 + (void)quickMenu {
+    [DYBContext setNeedsModel:YES];     // 用户主动要用作品数据了，才允许扫描
     DYBAweme *a = [DYBAweme current];
     NSMutableArray<NSDictionary *> *acts = [NSMutableArray array];
 

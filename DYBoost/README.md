@@ -278,6 +278,34 @@ python3 tools/build.py --pack none --suffix=-execpath \
   所以抖音自己更新后需要**重新注入一次**。
 - 要换版本：巨魔注入器 → 抖音 → 管理 → 找到 `DYBoost.dylib` 长按 → 替换。
 
+### 打不开 / 卡死怎么办（1.0.1 起带三道保险）
+
+历史上出现过「注入后抖音一打开就冻住」，根因是**对象图扫描太贪**：
+`viewDidAppear` 里同步跑 `DYBFindObject(vc, ..., 6)`，抖音首页 VC 持有整个 feed 数据源
+（几百个 model × 上百 ivar），深度 6 展开能到 10^6 量级，主线程直接冻死。
+1.0.1 做了三件事：
+
+1. **扫描有预算**（`DYBHookKit`）：最多 1200 个节点 / 20ms / 深度 5，
+   且 `UIView` `UIViewController` `CALayer` `UIImage` `NSData` 的 ivar 一律不深入。
+2. **按需扫描**（`DYBContext.setNeedsModel:`）：默认不扫。只有你打开了面板、
+   点过快捷菜单、或开了「作品数据」浮窗，才允许在 RunLoop 空闲时扫（2.5s 节流）。
+3. **安全层**（`DYBSafe`）：
+   - 主线程看门狗：8 秒没响应 → 自动降一级并写盘，**下次启动生效**；
+     连最轻一级都卡 → 直接整体停用，保证抖音能开。
+   - 分级启动：stage 1 = 只挂悬浮球 + 手势；stage 2 = 加美化 hook 与作品扫描。
+   - kill switch：一键彻底不装载。
+
+面板 → **安全与排障** 里可以：停用插件 / 切轻量模式 / 看自动降级次数 / 手动扫一次作品。
+
+**已经卡死、连面板都进不去时的手动救砖**（Filza 或其它能改 plist 的工具）：
+
+```
+/var/mobile/Containers/Data/Application/<抖音UUID>/Library/Preferences/com.seagull.dyboost.plist
+```
+
+加一条 `DYB.killSwitch = YES`（Boolean），彻底杀后台再开抖音，插件就不会装载了。
+嫌麻烦就直接巨魔注入器 → 抖音 → 管理 → 删掉 `DYBoost.dylib`，再注入新版本。
+
 ---
 
 ## 四、怎么用

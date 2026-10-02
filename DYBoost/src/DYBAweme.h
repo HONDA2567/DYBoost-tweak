@@ -32,8 +32,10 @@
 
 /// hook 侧把当前 model 报上来
 + (void)noteModel:(id)model;
-/// 当前作品信息（必要时自动从顶层 VC 里找 model）
+/// 当前作品信息（必要时自动从顶层 VC 里找 model，带节流与预算）
 + (DYBAweme *)current;
+/// 只返回已缓存的解析结果，绝不扫描（高频调用用这个）
++ (DYBAweme *)currentNoScan;
 /// 强制重新扫描顶层 VC
 + (void)rescan;
 

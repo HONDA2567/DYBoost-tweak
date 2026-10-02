@@ -97,7 +97,7 @@ static NSDictionary<NSString *, id> * DYBDefaultTable(void) {
             DYBKey_glassNavBar      : @NO,
             DYBKey_tintEnabled      : @NO,
             DYBKey_tintHex          : @"#FE2C55",
-            DYBKey_nativeGlass      : @YES,
+            DYBKey_nativeGlass      : @NO,    // iOS26 UIGlassEffect 有风险，默认走磨砂；想试在面板里开
             DYBKey_progressStyle    : @0,
             DYBKey_progressHeight   : @0.0,   // 0 = 跟随原生
             DYBKey_progressHex      : @"#FFFFFF",

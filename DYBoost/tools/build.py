@@ -134,6 +134,9 @@ def compile_one(job) -> tuple[bool, str, str]:
     t0 = time.time()
     r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     dt = time.time() - t0
+    # 编译失败时 zig 也会留下 0 字节 .o，下次靠 mtime 判断会被当成最新，链接阶段才炸
+    if r.returncode != 0 and obj.exists() and obj.stat().st_size == 0:
+        obj.unlink()
     out = (r.stderr or "") + (r.stdout or "")
     keep = [l for l in out.splitlines()
             if "error:" in l or ("warning:" in l and not any(
@@ -146,8 +149,12 @@ def compile_one(job) -> tuple[bool, str, str]:
 
 
 def build_arch(arch: str, sdk: Path | None, min_ios: str, jobs: int,
-               install_name: str = "@rpath/DYBoost.dylib") -> Path:
-    objdir = ROOT / f".objs-{arch}"
+               install_name: str = "@rpath/DYBoost.dylib",
+               extra: list[str] | None = None,
+               variant: str = "") -> Path:
+    extra = extra or []
+    # 不同 variant 必须分开，否则 -D 变了 .o 缓存却不失效
+    objdir = ROOT / f".objs-{arch}{variant}"
     objdir.mkdir(exist_ok=True)
     srcs = sources()
     prefix = cc_prefix(arch, sdk, min_ios)
@@ -155,7 +162,7 @@ def build_arch(arch: str, sdk: Path | None, min_ios: str, jobs: int,
     for s in srcs:
         o = objdir / (s.stem + ".o")
         if not o.exists() or s.stat().st_mtime > o.stat().st_mtime:
-            todo.append((s, o, prefix, []))
+            todo.append((s, o, prefix, extra))
     print(f"[+] {arch}: {len(srcs)} 个源文件，需编译 {len(todo)} 个", flush=True)
 
     fails = []
@@ -172,7 +179,7 @@ def build_arch(arch: str, sdk: Path | None, min_ios: str, jobs: int,
     if missing:
         sys.exit(f"[!] 缺目标文件: {missing}")
 
-    out = ROOT / f".{NAME}.{arch}.dylib"
+    out = ROOT / f".{NAME}.{arch}{variant}.dylib"
     fw: list[str] = []
     sysroot = Path(xcrun_sdk_path()) if IS_DARWIN else sdk
     for f in FRAMEWORKS:
@@ -212,6 +219,11 @@ def main() -> int:
                     help="LC_ID_DYLIB。宿主 rpath 找不到时用 "
                          "@executable_path/Frameworks/DYBoost.dylib")
     ap.add_argument("--suffix", default="", help="输出文件名后缀，用来同时出多个版本")
+    ap.add_argument("--stage-default", type=int, default=2, choices=[1, 2],
+                    help="默认启动等级：1 = 只挂悬浮球+手势（lite，最不容易出事），2 = 完整")
+    ap.add_argument("--probe", action="store_true",
+                    help="探针版：dylib 只写一条日志证明加载成功，不挂任何 hook（用来判断"
+                         "闪退是注入/签名问题还是代码问题）")
     args = ap.parse_args()
 
     sdk = None if IS_DARWIN else (find_sdk(args.sdk) or
@@ -220,7 +232,12 @@ def main() -> int:
     print(f"[+] 平台   : {platform.system()}  架构: {','.join(archs)}  最低 iOS {args.min}")
 
     t0 = time.time()
-    slices = [build_arch(a, sdk, args.min, args.jobs, args.install_name) for a in archs]
+    variant = args.suffix or ""
+    extra = [f"-DDYB_DEFAULT_STAGE={args.stage_default}"]
+    if args.probe:
+        extra.append("-DDYB_PROBE_ONLY=1")
+    slices = [build_arch(a, sdk, args.min, args.jobs, args.install_name, extra, variant)
+              for a in archs]
 
     outdir = ROOT / args.out
     outdir.mkdir(exist_ok=True)

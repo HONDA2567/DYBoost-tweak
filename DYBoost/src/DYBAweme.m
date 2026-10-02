@@ -157,11 +157,32 @@ static NSValue *gParsedKey;
     gParsedKey = nil;
 }
 
+static CFTimeInterval gLastRescan = 0;
+
 + (void)rescan {
+    // 节流：对象图扫描再便宜也不能在滚动/切页时反复跑
+    CFTimeInterval now = CACurrentMediaTime();
+    if (gLastRescan && now - gLastRescan < 2.0) return;
+    gLastRescan = now;
+
     // 40.6.0 实测：AWEAwemeModel 与 AWECodeGenAwemeModel 都存在
     id found = DYBFindObject(DYBMostTopViewController(),
-                             @[@"AWEAwemeModel", @"AWECodeGenAwemeModel", @"AwemeModel", @"AWEModel"], 6);
+                             @[@"AWEAwemeModel", @"AWECodeGenAwemeModel", @"AwemeModel", @"AWEModel"], 5);
     if (found) [self noteModel:found];
+}
+
++ (DYBAweme *)parsedFor:(id)m {
+    if (!m) return nil;
+    NSValue *k = [NSValue valueWithPointer:(__bridge const void *)m];
+    if (gParsed && gParsedKey && [gParsedKey isEqualToValue:k]) return gParsed;
+    DYBAweme *a = [self parse:m];
+    gParsed = a;
+    gParsedKey = k;
+    return a;
+}
+
++ (DYBAweme *)currentNoScan {
+    return [self parsedFor:gRawModel];
 }
 
 + (DYBAweme *)current {
@@ -170,13 +191,7 @@ static NSValue *gParsedKey;
         [self rescan];
         m = gRawModel;
     }
-    if (!m) return nil;
-    NSValue *k = [NSValue valueWithPointer:(__bridge const void *)m];
-    if (gParsed && gParsedKey && [gParsedKey isEqualToValue:k]) return gParsed;
-    DYBAweme *a = [self parse:m];
-    gParsed = a;
-    gParsedKey = k;
-    return a;
+    return [self parsedFor:m];
 }
 
 @end

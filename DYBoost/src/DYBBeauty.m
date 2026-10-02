@@ -185,6 +185,7 @@ static void *DYBOrigFor(NSString *rid, SEL sel) {
 
 + (void)applyTabBar:(UITabBar *)tb {
     if (!tb) return;
+    @try {
     DYBPrefs *p = DYBPrefs.shared;
     BOOL on = [p boolFor:DYBKey_beautyMaster default:YES] && [p boolFor:DYBKey_glassTabBar default:YES];
     UIView *veil = [tb viewWithTag:kDYBVeilTag];
@@ -209,17 +210,19 @@ static void *DYBOrigFor(NSString *rid, SEL sel) {
         if (tb.backgroundColor) bak[@"color"] = tb.backgroundColor;
         if (tb.tintColor) bak[@"tint"] = tb.tintColor;
         objc_setAssociatedObject(tb, &kDYBTabBarBackup, bak, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    } else {
-        [veil removeFromSuperview];
     }
 
-    UIVisualEffectView *v = [[UIVisualEffectView alloc] initWithEffect:[DYBTheme glassEffect]];
-    v.tag = kDYBVeilTag;
+    // 复用已有 veil：layoutSubviews 里反复 remove+insert 会造成布局死循环
+    UIVisualEffectView *v = (UIVisualEffectView *)veil;
+    if (!v) {
+        v = [[UIVisualEffectView alloc] initWithEffect:[DYBTheme glassEffect]];
+        v.tag = kDYBVeilTag;
+        v.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        v.userInteractionEnabled = NO;
+        [tb insertSubview:v atIndex:0];
+        [tb sendSubviewToBack:v];
+    }
     v.frame = tb.bounds;
-    v.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    v.userInteractionEnabled = NO;
-    [tb insertSubview:v atIndex:0];
-    [tb sendSubviewToBack:v];
 
     tb.backgroundImage = [UIImage new];
     tb.shadowImage = [UIImage new];
@@ -237,6 +240,7 @@ static void *DYBOrigFor(NSString *rid, SEL sel) {
         v.layer.borderColor = [DYBTheme separator].CGColor;
     }
     [self setTabBarLabelsHidden:[p boolFor:DYBKey_hideTabLabels default:NO] in:tb];
+    } @catch (NSException *e) { NSLog(@"[DYBoost] applyTabBar 异常: %@", e.reason); }
 }
 
 + (void)setTabBarLabelsHidden:(BOOL)hidden in:(UITabBar *)tb {
@@ -252,6 +256,7 @@ static void *DYBOrigFor(NSString *rid, SEL sel) {
 
 + (void)applyNavBar:(UINavigationBar *)bar {
     if (!bar) return;
+    @try {
     DYBPrefs *p = DYBPrefs.shared;
     BOOL on = [p boolFor:DYBKey_beautyMaster default:YES] && [p boolFor:DYBKey_glassNavBar default:NO];
     if (!on) return;
@@ -268,12 +273,14 @@ static void *DYBOrigFor(NSString *rid, SEL sel) {
         v.userInteractionEnabled = NO;
         [bar insertSubview:v atIndex:0];
     }
+    } @catch (NSException *e) { NSLog(@"[DYBoost] applyNavBar 异常: %@", e.reason); }
 }
 
 #pragma mark 应用：进度条
 
 + (void)applyProgress:(UIView *)v {
     if (!v) return;
+    @try {
     DYBPrefs *p = DYBPrefs.shared;
     if (![p boolFor:DYBKey_beautyMaster default:YES]) return;
     NSInteger style = [p intFor:DYBKey_progressStyle default:0];
@@ -301,19 +308,27 @@ static void *DYBOrigFor(NSString *rid, SEL sel) {
         v.layer.cornerRadius = (h > 0 ? h : v.bounds.size.height) / 2.0;
         v.clipsToBounds = YES;
     }
+    } @catch (NSException *e) { NSLog(@"[DYBoost] applyProgress 异常: %@", e.reason); }
 }
 
 #pragma mark 应用：隐藏规则
 
+/// 重入保护：我们的修改可能再次触发被 hook 的方法
+static BOOL gInHide = NO;
+
 + (void)applyHideRule:(NSString *)ruleID toObject:(id)obj {
     if (!obj || ruleID.length == 0) return;
+    if (gInHide) return;
     DYBPrefs *p = DYBPrefs.shared;
     if (![p boolFor:ruleID default:NO]) return;
-    if ([obj isKindOfClass:UIView.class]) {
-        ((UIView *)obj).hidden = YES;
-    } else if ([obj isKindOfClass:UIViewController.class]) {
-        ((UIViewController *)obj).view.hidden = YES;
-    }
+    gInHide = YES;
+    @try {
+        if ([obj isKindOfClass:UIView.class]) {
+            ((UIView *)obj).hidden = YES;
+        } else if ([obj isKindOfClass:UIViewController.class]) {
+            ((UIViewController *)obj).view.hidden = YES;
+        }
+    } @finally { gInHide = NO; }
 }
 
 #pragma mark 清屏
@@ -360,18 +375,25 @@ static CFTimeInterval gLastRefresh;
     gLastRefresh = CACurrentMediaTime();
     UIWindow *w = DYBKeyWindow();
     if (!w) return;
-    DYBWalkViews(w, ^(UIView *v, BOOL *stop) {
-        if ([v isKindOfClass:UITabBar.class]) [self applyTabBar:(UITabBar *)v];
-        if ([v isKindOfClass:UINavigationBar.class]) [self applyNavBar:(UINavigationBar *)v];
-    });
+
+    // 先解析出命中的类，整棵树只走一遍（原来是每条规则走一遍）
+    NSMutableArray<NSArray *> *rules = [NSMutableArray array];
     for (NSDictionary *rule in DYBHideRules()) {
         Class c = DYBFirstClass(rule[@"classes"]);
         if (!c) continue;
         if ([c isSubclassOfClass:UIViewController.class]) continue;
-        DYBWalkViews(w, ^(UIView *v, BOOL *stop) {
-            if ([v isKindOfClass:c]) [self applyHideRule:rule[@"id"] toObject:v];
-        });
+        [rules addObject:@[rule[@"id"], c]];
     }
+
+    __block NSUInteger visited = 0;
+    DYBWalkViews(w, ^(UIView *v, BOOL *stop) {
+        if (++visited > 4000) { *stop = YES; return; }   // 异常大的树直接掐断
+        if ([v isKindOfClass:UITabBar.class]) [self applyTabBar:(UITabBar *)v];
+        else if ([v isKindOfClass:UINavigationBar.class]) [self applyNavBar:(UINavigationBar *)v];
+        for (NSArray *r in rules) {
+            if ([v isKindOfClass:(Class)r[1]]) { [self applyHideRule:(NSString *)r[0] toObject:v]; break; }
+        }
+    });
     [self applyCleanScreenIn:w];
 }
 

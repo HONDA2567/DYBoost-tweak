@@ -16,6 +16,9 @@
 #import "DYBHookKit.h"
 #import "DYBAI.h"
 #import "DYBDump.h"
+#import "DYBAweme.h"
+#import "DYBContext.h"
+#import "DYBSafe.h"
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 #pragma mark - 模型
@@ -218,6 +221,7 @@ static UIWindow *gPanelWindow;
 @implementation DYBPanel
 
 + (void)presentRoot {
+    [DYBContext setNeedsModel:YES];     // 开了面板就认为要用作品数据，之后才开始扫描
     DYBAsyncMain(^{
         if (gPanelWindow) { gPanelWindow.hidden = NO; return; }
         UIWindow *w;
@@ -423,12 +427,47 @@ static UIWindow *gPanelWindow;
         [DYBItem action:@"复制校准报告" sub:@"内容太长时改用分享" block:^{ [DYBDump copyReport]; }],
     ]];
 
+    // ---- 安全 / 排障 ----
+    NSString *crashTitle = DYBLastCrash().length ? @"查看上次崩溃记录（点一下复制）" : @"暂无崩溃记录";
+    NSString *crashSub   = DYBCrashLogPath().length
+                         ? [NSString stringWithFormat:@"黑匣子文件：%@", DYBCrashLogPath()]
+                         : @"黑匣子未初始化";
+    NSArray *safe = @[
+        [DYBItem action:(DYBKillSwitch() ? @"插件已停用（点这里恢复）" : @"停用整个插件")
+                    sub:@"彻底不挂载，抖音回到原生状态。重启抖音生效" block:^{
+            BOOL next = !DYBKillSwitch();
+            DYBSetKillSwitch(next);
+            [DYBHUD show:next ? @"已停用，重启抖音生效" : @"已恢复，重启抖音生效" duration:2.4];
+        }],
+        [DYBItem action:(DYBSafeStage() >= 2 ? @"完整模式（点这里降到轻量）" : @"轻量模式（点这里恢复完整）")
+                    sub:@"轻量 = 只保留悬浮球与手势，不挂美化 hook、不做作品扫描。重启抖音生效" block:^{
+            DYBSetSafeStage(DYBSafeStage() >= 2 ? 1 : 2);
+            [DYBHUD show:DYBSafeStage() >= 2 ? @"完整模式，重启抖音生效" : @"轻量模式，重启抖音生效" duration:2.4];
+        }],
+        [DYBItem action:[NSString stringWithFormat:@"自动降级次数：%d", DYBSafeDegradeCount()]
+                    sub:@"看门狗发现主线程卡死会自动降一级并写盘，下次启动就生效" block:^{ }],
+        [DYBItem action:crashTitle sub:crashSub block:^{
+            NSString *c = DYBLastCrash();
+            if (c.length == 0) { [DYBHUD show:@"没有崩溃记录" duration:1.6]; return; }
+            UIPasteboard.generalPasteboard.string = c;
+            [DYBHUD show:[c substringToIndex:MIN((NSUInteger)90, c.length)] duration:4.0];
+        }],
+        [DYBItem action:@"立即扫描当前作品" sub:@"手动触发一次作品解析（下载/直链/AI 用）" block:^{
+            [DYBContext setNeedsModel:YES];
+            [DYBAweme rescan];
+            DYBAweme *a = [DYBAweme currentNoScan];
+            [DYBHUD show:(a ? [NSString stringWithFormat:@"已识别：%@", a.desc.length ? a.desc : a.awemeID] : @"没扫到作品 model")
+                 duration:2.4];
+        }],
+    ];
+
     return @[
         [DYBSection section:@"功能增强" footer:@"所有功能都在本机执行，不会上传任何数据" items:enhance],
         [DYBSection section:@"界面美化" footer:@"美化只改渲染层，不写回抖音自己的设置" items:beauty],
         [DYBSection section:@"隐藏元素" footer:@"依赖类名解析，版本变动可能失效，看「诊断」" items:hide],
         [DYBSection section:@"AI 助手" footer:@"只会把当前作品文案 / 可见评论发到你自己在上面填的接口，除此之外不联网" items:aiTop],
         [DYBSection section:@"数据与诊断" footer:@"" items:data],
+        [DYBSection section:@"安全与排障" footer:@"抖音打不开 / 卡死时，先停插件或降轻量模式" items:safe],
     ];
 }
 

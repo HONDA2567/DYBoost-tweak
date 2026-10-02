@@ -103,9 +103,12 @@
                 }
                 [inv setTarget:glassCls];
                 [inv invoke];
-                __unsafe_unretained id ret = nil;
-                [inv getReturnValue:&ret];
-                if (ret && [ret isKindOfClass:UIVisualEffect.class]) return (UIVisualEffect *)ret;
+                // 必须用 strong 变量接：__unsafe_unretained 拿到的是 autorelease 对象，
+                // 出了这个作用域就可能悬垂，传给 UIVisualEffectView 时直接炸
+                __unsafe_unretained id raw = nil;
+                [inv getReturnValue:&raw];
+                UIVisualEffect *ret = raw;          // strong，ARC 在这里 retain
+                if (ret && [ret isKindOfClass:UIVisualEffect.class]) return ret;
             } else {
                 id e = [[glassCls alloc] init];
                 if ([e isKindOfClass:UIVisualEffect.class]) return (UIVisualEffect *)e;

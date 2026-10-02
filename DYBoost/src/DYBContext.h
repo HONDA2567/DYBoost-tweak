@@ -20,4 +20,11 @@
 /// 首次进入抖音界面时挂载：悬浮球 / 手势 / 胶囊
 + (void)installOnce;
 
+/// 标记「需要作品数据」。默认关闭——对象图扫描只在用户真的要用
+/// 下载 / 直链 / AI / 作品数据浮窗时才开启，避免启动期白跑。
++ (void)setNeedsModel:(BOOL)on;
++ (BOOL)needsModel;
+/// 空闲 + 节流地扫一次当前作品 model
++ (void)scheduleModelScan;
+
 @end

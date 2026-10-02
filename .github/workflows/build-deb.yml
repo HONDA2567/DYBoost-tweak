@@ -36,16 +36,25 @@ jobs:
           xcrun --sdk iphoneos --show-sdk-version
           python3 --version
 
-      - name: 编译 dylib (arm64 + arm64e)
+      - name: 编译三个变体 (arm64 + arm64e, ad-hoc 签名)
         working-directory: DYBoost
         run: |
-          python3 tools/build.py --min 15.0 --pack none
-          lipo -info packages/DYBoost.dylib
+          set -e
+          python3 tools/build.py --min 15.0 --arch arm64,arm64e --pack none
+          python3 tools/build.py --min 15.0 --arch arm64,arm64e --stage-default 1 --suffix=-lite --pack none
+          python3 tools/build.py --min 15.0 --arch arm64,arm64e --probe --suffix=-probe --pack none
+          echo "=== 签名校验 ==="
+          for f in packages/DYBoost.dylib packages/DYBoost-lite.dylib packages/DYBoost-probe.dylib; do
+            lipo -info "$f"
+            codesign -dv "$f" 2>&1 | head -3 || echo "$f 未签名"
+          done
           ls -la packages/
 
       - name: 产物自检（架构 / 入口 / 依赖 / 签名）
         working-directory: DYBoost
-        run: python3 tools/verify_dylib.py packages/DYBoost.dylib
+        run: |
+          python3 tools/verify_dylib.py packages/DYBoost.dylib
+          python3 tools/verify_dylib.py packages/DYBoost-lite.dylib
 
       - name: 打 deb / zip
         working-directory: DYBoost
