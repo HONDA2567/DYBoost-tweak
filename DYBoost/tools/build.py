@@ -235,6 +235,14 @@ def main() -> int:
             sys.exit("[!] lipo 合并失败")
     print(f"[+] 编译耗时 {time.time()-t0:.1f}s")
 
+    # ad-hoc 签名：塞 LC_CODE_SIGNATURE。TrollFools / TrollStore 重签时会覆盖，
+    # 但没有这一段的裸 dylib 在某些宿主上会被 amfi 直接拒载。
+    if IS_DARWIN and shutil.which("codesign"):
+        subprocess.run(["codesign", "-f", "-s", "-", "--timestamp=none", str(final)],
+                       capture_output=True, text=True)
+        signed = subprocess.run(["codesign", "-dv", str(final)], capture_output=True, text=True)
+        print(f"[+] 签名   : {'ad-hoc OK' if signed.returncode == 0 else '失败（可忽略）'}")
+
     data = final.read_bytes()
     print(f"[+] 产出   : {final}  ({len(data)} bytes)")
     print(f"[+] magic  : {data[:4].hex()}   (cf fa ed fe = Mach-O 64-bit)")

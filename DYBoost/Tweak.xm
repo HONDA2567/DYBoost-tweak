@@ -81,8 +81,9 @@ static void DYBBoot(void) {
 
 #pragma mark - 构造入口（不经过 Logos，避免链接 substrate）
 
-__attribute__((constructor))
-static void DYBoostEntry(void) {
+static dispatch_once_t DYBoostEntryOnceToken;
+
+static void DYBoostEntryReal(void) {
     @autoreleasepool {
         NSString *bid = [[NSBundle mainBundle] bundleIdentifier];
         if (![bid hasPrefix:@"com.ss.iphone.ugc.Aweme"]) return;
@@ -97,4 +98,22 @@ static void DYBoostEntry(void) {
 
         DYBAsyncMainAfter(1.0, ^{ DYBBoot(); });
     }
+}
+
+static void DYBoostEntry(void) {
+    dispatch_once(&DYBoostEntryOnceToken, ^{ DYBoostEntryReal(); });
+}
+
+// 通路 1：+load —— 落进 __objc_nlclslist，由 objc runtime 在镜像加载时调用。
+// 这是所有 iOS 版本都支持的老机制，比 __attribute__((constructor)) 更稳：
+// 新 ld 会把构造器编码成 __TEXT,__init_offsets，只有 dyld4(iOS15+) 认。
+@interface DYBoostLoader : NSObject @end
+@implementation DYBoostLoader
++ (void)load { DYBoostEntry(); }
+@end
+
+// 通路 2：构造器 —— 有就跑，没有也不影响（dispatch_once 保证只执行一次）
+__attribute__((constructor))
+static void DYBoostConstructor(void) {
+    DYBoostEntry();
 }

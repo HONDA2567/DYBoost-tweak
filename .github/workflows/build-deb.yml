@@ -43,6 +43,10 @@ jobs:
           lipo -info packages/DYBoost.dylib
           ls -la packages/
 
+      - name: 产物自检（架构 / 入口 / 依赖 / 签名）
+        working-directory: DYBoost
+        run: python3 tools/verify_dylib.py packages/DYBoost.dylib
+
       - name: 打 deb / zip
         working-directory: DYBoost
         run: |
@@ -66,8 +70,9 @@ jobs:
         if: ${{ github.event.inputs.make_release == 'true' || startsWith(github.ref, 'refs/tags/v') }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: DYBoost ${{ github.ref_name }}
+          # 手动触发时 ref_name 是分支名，不适合当 tag，用 run_id 造一个
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('build-{0}', github.run_number) }}
+          name: DYBoost build ${{ github.run_number }}
           body: |
             抖音增强 + 美化插件 DYBoost 编译产物。
 
