@@ -1,0 +1,109 @@
+{
+  "_source": "抖音 40.6.0 (build 406019, SDK iphoneos26.2) 砸壳 IPA 实测类名",
+  "_method": "从 Payload/Aweme.app/Frameworks/AwemeCore.framework/AwemeCore 的 __objc_classname 抽 17.5 万个类名，人工按「关键词 × 视图后缀 × feed 上下文」筛出真实存在的视图类，剔除 Model/Manager/Service 和拍摄器 ACC* 模块",
+  "_note": "数组第一个是最该命中的：DYBFirstClass() 只取第一个能 NSClassFromString 解析到的类",
+  "hideAd": [
+    "AWEAdTagView",
+    "AWEAdDescTagView",
+    "AWEAdFeedTagListView",
+    "AWEAdFeedLearnMoreView",
+    "AWEAdButtonAmbienceView",
+    "AWEAdLinkSponsorshipView",
+    "AWEFeedDoubleColumnAdCell",
+    "AWEFeedGamePromotionContainerView"
+  ],
+  "hideLive": [
+    "AWEFeedLiveMarkView",
+    "AWEFeedLiveMarkHeadAnimatedView",
+    "AWEFeedLiveMarkHeadRedView",
+    "AWEFeedLiveMarkHeadGreyView",
+    "AWEFeedLiveMarkTitleView",
+    "AWEAwemeLiveTableViewCell",
+    "AWEAwemeLiveCollectionViewCell",
+    "AWEDCFeedLivePreviewCell"
+  ],
+  "hideShop": [
+    "AWEAwemeGoodsTag",
+    "AWEConcernGoodsCard",
+    "AWEConcernGoodsCardPriceTagView",
+    "AWEAwemeDetailEcommerceKolVideoView",
+    "AWEAwemeDetailEcomKolVideoCollectionViewCell",
+    "AWEFeedConcernPOISinglePromotionGoodsContentView",
+    "AWEMerchandiseComponentTabBar"
+  ],
+  "hideSearchBtn": [
+    "AWEDCFeedSearchBarView",
+    "AWEDetailFeedSearchContainer",
+    "AWECommonSearchBar",
+    "AWECustomSearchBar",
+    "AWEJXPadSearchEntranceView",
+    "AWEIMMessageTabNaviBarSearchEntryView",
+    "AWELeftSideBarAISearchContainerView"
+  ],
+  "hideAntiAddict": [
+    "AWEFeedAntiAddictMaskView",
+    "AWEFeedAntiAddictClearView",
+    "AWEAntiAddictedNoticeBarView",
+    "AWEAntiAddictDailyAlertView",
+    "AWEAntiAddictDailyAlertBubbleView",
+    "AWEAntiAddictMaskBlockInteractionView",
+    "AWEAntiAddictPreviewControlView",
+    "IESLiveFeedAntiAddictClearView"
+  ],
+  "hideDanmaku": [
+    "AWEAwemeBarrageAwemeView",
+    "AWEAwemeBarrageBaseView",
+    "AWEAwemeBarrageCommentView",
+    "AWEAwemeBarrageCollectView",
+    "AWEAwemeBarrageDiggView",
+    "AWEAwemeBarrageIconView",
+    "AWEAwemeBarrageViewerView",
+    "AWEBarrageContainerView"
+  ],
+  "hideAIBall": [
+    "AWEGeneralSearchAIBallButton",
+    "AWEGeneralSearchAIModeButton",
+    "AWEKMPAiAssistantTipsView",
+    "AWEKMPAiAssistantAnimateView",
+    "AWEKMPAiAssistantPromptLayer",
+    "AWEKMPAiAssistantComposeLayer",
+    "AWELeftSideBarAISearchContainerView"
+  ],
+  "hideStoryRing": [
+    "AWEUserAvatarRingAvatarView",
+    "AFDStoryGradientRingView",
+    "AFDColorRingView",
+    "AWEIMChatCellStoryCoverView",
+    "AWEIMFriendTabChatCellStoryCoverComponent",
+    "AWEStoryProgressContainerView",
+    "AWEStoryProgressCell"
+  ],
+  "hideCommentInput": [
+    "AWECommentInputBackgroundView",
+    "AWECommentInputLynxView",
+    "AWECommentInputLynxBackgroundView",
+    "AWECommentInputFastEmojiBar",
+    "AWECommentAudioInputView",
+    "AWECommentListInputSelectGroupView",
+    "AFDFastReplyInputViewContainer"
+  ],
+  "hideTyping": [
+    "_TtC7ChatBuy15TypingIndicator",
+    "_TtC7FlowIMX12TypingCursor",
+    "_TtC7FlowIMX13TypingContent"
+  ],
+  "hideReadReceipt": [
+    "AWEIMMessageReadIndexComponent",
+    "IESIMConversationReadReceipt"
+  ],
+  "__progress__": [
+    "AWEDPlayerProgressView",
+    "AWEDPlayerProgressContainer",
+    "AWEDPlayerProgressContainerView",
+    "AWEDPlayerPlayProgressContainer",
+    "AWEDPlayerProgressPreviewView",
+    "AWEDProgressFeedContainer",
+    "AWEDProgressPlayBackAdsorbContainer",
+    "AWEDProgressLongVideoContainer"
+  ]
+}

@@ -23,48 +23,48 @@ static NSArray<NSDictionary *> *DYBHideRules(void) {
     return @[
         @{ @"id": DYBKey_hideAd,
            @"title": @"广告 / 推广",
-           @"classes": @[@"AWEAdAvatarView", @"AWEAdFeedCommentContainerViewController", @"AWEAdFeedView", @"AWEMixVideoAdView", @"AWEAdTagView"] },
+           @"classes": @[@"AWEAdTagView", @"AWEAdDescTagView", @"AWEAdFeedTagListView", @"AWEAdFeedLearnMoreView", @"AWEAdButtonAmbienceView", @"AWEAdLinkSponsorshipView", @"AWEFeedDoubleColumnAdCell", @"AWEFeedGamePromotionContainerView"] },
 
         @{ @"id": DYBKey_hideLive,
            @"title": @"直播入口 / 直播标记",
-           @"classes": @[@"AWEFeedLiveMarkView", @"AWEFeedLiveTabViewController", @"AWEFeedLiveTabSelectionComponent", @"AWEIMCellLiveStatusContainerView", @"AWELiveEntranceView"] },
+           @"classes": @[@"AWEFeedLiveMarkView", @"AWEFeedLiveMarkHeadAnimatedView", @"AWEFeedLiveMarkHeadRedView", @"AWEFeedLiveMarkHeadGreyView", @"AWEFeedLiveMarkTitleView", @"AWEAwemeLiveTableViewCell", @"AWEAwemeLiveCollectionViewCell", @"AWEDCFeedLivePreviewCell"] },
 
         @{ @"id": DYBKey_hideShop,
            @"title": @"商城 / 电商锚点",
-           @"classes": @[@"AWEFeedTemplateAnchorView", @"AWEFeedTemplateAnchorViewV2", @"AWEFeedAnchorContainerView", @"AWEECommerceFeedCommentViewController", @"AWECommerceModuleService"] },
+           @"classes": @[@"AWEAwemeGoodsTag", @"AWEConcernGoodsCard", @"AWEConcernGoodsCardPriceTagView", @"AWEAwemeDetailEcommerceKolVideoView", @"AWEAwemeDetailEcomKolVideoCollectionViewCell", @"AWEFeedConcernPOISinglePromotionGoodsContentView", @"AWEMerchandiseComponentTabBar"] },
 
         @{ @"id": DYBKey_hideSearchBtn,
            @"title": @"顶部搜索入口",
-           @"classes": @[@"AWEHPTopBarSearchEntranceController", @"AWEHPSearchBubbleEntranceView", @"AWEDCFeedSearchBarView", @"AWEHotSearchInnerBottomView"] },
+           @"classes": @[@"AWEDCFeedSearchBarView", @"AWEDetailFeedSearchContainer", @"AWECommonSearchBar", @"AWECustomSearchBar", @"AWEJXPadSearchEntranceView", @"AWEIMMessageTabNaviBarSearchEntryView", @"AWELeftSideBarAISearchContainerView"] },
 
         @{ @"id": DYBKey_hideAntiAddict,
            @"title": @"防沉迷 / 时间提示条",
-           @"classes": @[@"AWEAntiAddictedNoticeBarView", @"AWEAntiAddictedViewController", @"AWETimeLockNoticeView"] },
+           @"classes": @[@"AWEFeedAntiAddictMaskView", @"AWEFeedAntiAddictClearView", @"AWEAntiAddictedNoticeBarView", @"AWEAntiAddictDailyAlertView", @"AWEAntiAddictDailyAlertBubbleView", @"AWEAntiAddictMaskBlockInteractionView", @"AWEAntiAddictPreviewControlView", @"IESLiveFeedAntiAddictClearView"] },
 
         @{ @"id": DYBKey_hideDanmaku,
            @"title": @"弹幕",
-           @"classes": @[@"AWEDanmakuContainerView", @"AWEDanmakuContentLabel"] },
+           @"classes": @[@"AWEAwemeBarrageAwemeView", @"AWEAwemeBarrageBaseView", @"AWEAwemeBarrageCommentView", @"AWEAwemeBarrageCollectView", @"AWEAwemeBarrageDiggView", @"AWEAwemeBarrageIconView", @"AWEAwemeBarrageViewerView", @"AWEBarrageContainerView"] },
 
         @{ @"id": DYBKey_hideAIBall,
            @"title": @"搜索 / 键盘 AI 浮钮",
-           @"classes": @[@"AWEGeneralSearchAIBallButton", @"AWEGeneralSearchAIModeButton", @"AWEVoiceSearchEntranceView", @"AWEVoiceSearchNewEntranceView"] },
+           @"classes": @[@"AWEGeneralSearchAIBallButton", @"AWEGeneralSearchAIModeButton", @"AWEKMPAiAssistantTipsView", @"AWEKMPAiAssistantAnimateView", @"AWEKMPAiAssistantPromptLayer", @"AWEKMPAiAssistantComposeLayer", @"AWELeftSideBarAISearchContainerView"] },
 
         @{ @"id": DYBKey_hideStoryRing,
            @"title": @"头像故事圈",
-           @"classes": @[@"AWEStoryRingView", @"AWECoverStoryRingView", @"AWEUserStoryRingView"] },
+           @"classes": @[@"AWEUserAvatarRingAvatarView", @"AFDStoryGradientRingView", @"AFDColorRingView", @"AWEIMChatCellStoryCoverView", @"AWEIMFriendTabChatCellStoryCoverComponent", @"AWEStoryProgressContainerView", @"AWEStoryProgressCell"] },
 
         @{ @"id": DYBKey_hideCommentInput,
            @"title": @"评论输入框背景",
-           @"classes": @[@"AWECommentInputBackgroundView", @"AWECommentInputViewSwiftImpl", @"AWEIMDNewInputViewController"] },
+           @"classes": @[@"AWECommentInputBackgroundView", @"AWECommentInputLynxView", @"AWECommentInputLynxBackgroundView", @"AWECommentInputFastEmojiBar", @"AWECommentAudioInputView", @"AWECommentListInputSelectGroupView", @"AFDFastReplyInputViewContainer"] },
 
         @{ @"id": DYBKey_hideTyping,
            @"title": @"「正在输入」状态",
-           @"classes": @[@"AWEIMTypingView", @"AWEIMTypingIndicatorView", @"AWEIMInputStatusView"],
+           @"classes": @[@"_TtC7ChatBuy15TypingIndicator", @"_TtC7FlowIMX12TypingCursor", @"_TtC7FlowIMX13TypingContent"],
            @"experimental": @YES },
 
         @{ @"id": DYBKey_hideReadReceipt,
            @"title": @"已读回执",
-           @"classes": @[@"AWEIMReadReceiptView", @"AWEIMReadStatusView", @"AWEIMMessageReadView"],
+           @"classes": @[@"AWEIMMessageReadIndexComponent", @"IESIMConversationReadReceipt"],
            @"experimental": @YES },
     ];
 }
@@ -72,8 +72,15 @@ static NSArray<NSDictionary *> *DYBHideRules(void) {
 #pragma mark - 进度条候选类
 
 static NSArray<NSString *> *DYBProgressClasses(void) {
-    return @[@"AWEFeedProgressSlider", @"AWEFeedProgressSliderForLongPress", @"AWEDProgressCoreContainer",
-             @"AWEFakeProgressSliderView", @"AWEDemaciaChapterProgressSlider", @"AWEDPlayerProgressContainerView"];
+    return @[
+             @"AWEDPlayerProgressView", 
+             @"AWEDPlayerProgressContainer", 
+             @"AWEDPlayerProgressContainerView", 
+             @"AWEDPlayerPlayProgressContainer", 
+             @"AWEDPlayerProgressPreviewView", 
+             @"AWEDProgressFeedContainer", 
+             @"AWEDProgressPlayBackAdsorbContainer", 
+             @"AWEDProgressLongVideoContainer"];
 }
 
 #pragma mark - 实现

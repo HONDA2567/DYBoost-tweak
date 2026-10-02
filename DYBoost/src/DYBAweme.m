@@ -158,7 +158,9 @@ static NSValue *gParsedKey;
 }
 
 + (void)rescan {
-    id found = DYBFindObject(DYBMostTopViewController(), @[@"AWEAwemeModel", @"AwemeModel", @"AWEModel"], 6);
+    // 40.6.0 实测：AWEAwemeModel 与 AWECodeGenAwemeModel 都存在
+    id found = DYBFindObject(DYBMostTopViewController(),
+                             @[@"AWEAwemeModel", @"AWECodeGenAwemeModel", @"AwemeModel", @"AWEModel"], 6);
     if (found) [self noteModel:found];
 }
 

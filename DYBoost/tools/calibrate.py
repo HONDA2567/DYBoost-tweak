@@ -22,6 +22,7 @@ import json
 import os
 import re
 import shutil
+from pathlib import Path
 import struct
 import sys
 
@@ -215,21 +216,49 @@ def main() -> int:
     ap.add_argument("--apply", action="store_true", help="直接改写 src/DYBBeauty.m")
     ap.add_argument("--out", help="把建议写成 JSON")
     ap.add_argument("--max", type=int, default=MAX_PER_RULE)
+    ap.add_argument("--preset", help="套用 tools/presets/<name>.json 里人工核过的类名表")
+    ap.add_argument("--json", help="套用任意 JSON 类名表（同 preset 格式）")
     args = ap.parse_args()
+
+    cur, src = current_lists()
+
+    if args.preset or args.json:
+        p = Path(args.json) if args.json else Path(ROOT) / "tools" / "presets" / f"{args.preset}.json"
+        if not p.exists():
+            print("[!] 找不到", p, file=sys.stderr)
+            return 2
+        data = json.load(open(p, encoding="utf-8"))
+        # "__progress__" 是进度条那条（双下划线），单下划线开头的是 _source/_method 等说明字段
+        newmap = {k: v for k, v in data.items()
+                  if k.startswith("__") or not k.startswith("_")}
+        print(f"[+] 套用预设 {p.name}")
+        if data.get("_source"):
+            print(f"    来源: {data['_source']}")
+        for rid, names in newmap.items():
+            print(f"    {rid:18s} {len(names):2d} 个  首位 {names[0] if names else '-'}")
+        if args.out:
+            json.dump(newmap, open(args.out, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+            print("\n[+] 已写入", args.out)
+        if args.apply:
+            shutil.copyfile(BEAUTY, BEAUTY + ".bak")
+            open(BEAUTY, "w", encoding="utf-8").write(apply_to_source(src, newmap))
+            print("[+] 已改写", BEAUTY, " 备份：", BEAUTY + ".bak")
+        else:
+            print("\n（只打印。加 --apply 才会改文件）")
+        return 0
 
     if args.macho:
         names = parse_macho(args.macho)
     elif args.input:
         names = parse_text(args.input)
     else:
-        print("[!] 给一个输入文件，或用 --macho", file=sys.stderr)
+        print("[!] 给一个输入文件，或用 --macho / --preset", file=sys.stderr)
         return 2
 
     if not names:
         print("[!] 没解析到类名", file=sys.stderr)
         return 2
 
-    cur, src = current_lists()
     print(f"[+] 类名总数 {len(names)}")
     newmap = {}
     for rid, keys in RULES.items():
