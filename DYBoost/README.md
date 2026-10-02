@@ -106,9 +106,45 @@ DYBoost/
 
 ## 二·补二、真机校准（抖音版本变了以后）
 
-依赖类名解析的功能（隐藏元素那几项）会随抖音版本失效。校准流程：
+依赖类名解析的功能（隐藏元素那几项）会随抖音版本失效。
 
-1. 面板 → **数据与诊断** → `导出校准报告（分享）`（或 `导出全部类名（分享）`）
+### 已内置：40.6.0 实测校准（默认）
+
+```bash
+python3 tools/calibrate.py --preset aweme-40.6.0 --apply
+```
+
+72 个类名全部来自 `抖音 40.6.0 (build 406019)` 砸壳 IPA 的 `__objc_classname`
+（17.5 万个类名里人工筛的，已逐个校验存在于该版本）。首选项：
+
+| 规则 | 命中类 |
+|---|---|
+| 广告 | `AWEAdTagView` |
+| 直播标记 | `AWEFeedLiveMarkView` |
+| 商城挂车 | `AWEAwemeGoodsTag` |
+| 顶栏搜索 | `AWEDCFeedSearchBarView` |
+| 防沉迷 | `AWEFeedAntiAddictMaskView` |
+| 弹幕 | `AWEAwemeBarrageAwemeView` |
+| AI 浮钮 | `AWEGeneralSearchAIBallButton` |
+| 故事圈 | `AWEUserAvatarRingAvatarView` |
+| 评论输入框 | `AWECommentInputBackgroundView` |
+| 进度条 | `AWEDPlayerProgressView` |
+
+换版本时按下面流程重做一遍即可。
+
+### 换版本怎么重做
+
+1. 有砸壳 IPA 最好（**不解压整个包**，只抽两个段，几秒）：
+
+```bash
+python3 tools/extract_ipa_classes.py 抖音_XX.X.ipa -o aweme_classes
+# -> aweme_classes.txt（类名）/ aweme_classes.meth.txt（方法名）
+python3 tools/calibrate.py aweme_classes.txt            # 自动打分给建议
+```
+
+   加密的（有 `LC_ENCRYPTION_INFO_64` 且 `cryptid != 0`）读不出来，脚本会直接报。
+
+2. 面板 → **数据与诊断** → `导出校准报告（分享）`（或 `导出全部类名（分享）`）
    报告内容：抖音版本 / 顶层 VC 类链 / 视图类名 / 当前作品解析结果 / 每条隐藏规则命中情况 /
    所有 `AWE* IES* FDS* …` 类名。
 2. 把文件传回电脑：
