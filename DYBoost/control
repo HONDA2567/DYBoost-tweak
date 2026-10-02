@@ -1,0 +1,10 @@
+Package: com.seagull.dyboost
+Name: DYBoost 抖音增强美化
+Version: 1.0.0
+Architecture: iphoneos-arm64
+Description: 抖音功能增强与界面美化插件（无水印下载 / 倍速 / 手势 / 悬浮球 / 液态玻璃美化 / 元素隐藏 / AI 助手）。仅供个人学习与自用。
+Maintainer: seagull
+Author: seagull
+Section: Tweaks
+Depends: firmware (>= 14.0)
+Suggests: preferenceloader

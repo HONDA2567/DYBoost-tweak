@@ -1,0 +1,82 @@
+name: build-dyboost
+
+# 没 Mac 时的白嫖路径：把仓库推到 GitHub -> Actions 跑完 -> 下载 deb / dylib -> 巨魔注入器导入。
+#
+# 巨魔注入器(TrollFools) 只需要一个 .dylib；deb 只是容器，图省事可以直接把
+# 产物里的 DYBoost.deb 丢给 TrollFools（它会自己解出里面的 dylib）。
+on:
+  workflow_dispatch:
+    inputs:
+      scheme:
+        description: 'deb 布局（巨魔选 trollstore）'
+        required: false
+        default: 'trollstore'
+        type: choice
+        options: [trollstore, rootless, roothide, rootful]
+      make_release:
+        description: '顺便发一个 Release（手机可直接下载）'
+        required: false
+        default: false
+        type: boolean
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 环境信息
+        run: |
+          xcodebuild -version || true
+          xcrun --sdk iphoneos --show-sdk-version
+          python3 --version
+
+      - name: 编译 dylib (arm64 + arm64e)
+        working-directory: DYBoost
+        run: |
+          python3 tools/build.py --min 15.0 --pack none
+          lipo -info packages/DYBoost.dylib
+          ls -la packages/
+
+      - name: 打 deb / zip
+        working-directory: DYBoost
+        run: |
+          python3 tools/pack_deb.py \
+            --dylib packages/DYBoost.dylib \
+            --scheme "${{ github.event.inputs.scheme || 'trollstore' }}" \
+            --out packages --format all
+          ls -la packages/
+
+      - name: 上传 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DYBoost-dylib-deb-zip
+          path: |
+            DYBoost/packages/*.dylib
+            DYBoost/packages/*.deb
+            DYBoost/packages/*.zip
+          if-no-files-found: error
+
+      - name: 发 Release（可选）
+        if: ${{ github.event.inputs.make_release == 'true' || startsWith(github.ref, 'refs/tags/v') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: DYBoost ${{ github.ref_name }}
+          body: |
+            抖音增强 + 美化插件 DYBoost 编译产物。
+
+            - `DYBoost.dylib`  —— 巨魔注入器(TrollFools) 直接注入这个
+            - `DYBoost*.deb`   —— 也可直接喂给 TrollFools / 越狱后 dpkg 安装
+            - `DYBoost*.zip`   —— 上面两个的压缩包
+
+            注入后彻底杀掉抖音后台再打开。
+          files: |
+            DYBoost/packages/*.dylib
+            DYBoost/packages/*.deb
+            DYBoost/packages/*.zip

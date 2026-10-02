@@ -1,0 +1,4 @@
+# 逆向/lab 产物与下载的 SDK，别进仓库
+case/
+.workbuddy/
+*.zip

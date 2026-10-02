@@ -1,0 +1,20 @@
+# 编译中间产物（别推到 GitHub，否则 Actions 会拉一堆二进制）
+.objs-*/
+.zigobj/
+.theos/
+obj/
+*.o
+*.dylib
+
+# 打包产物
+packages/
+*.deb
+*.zip
+
+# 本地 SDK（几十 MB ~ 几 GB，千万别传）
+tools/sdk/
+tools/*.sdk/
+
+# 杂项
+__pycache__/
+.DS_Store
